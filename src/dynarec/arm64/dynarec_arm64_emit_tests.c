@@ -77,6 +77,52 @@ void emit_cmp32(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s2, int s3
     }
 }
 
+// Pons 0005: emit CMP32 of s1 against a constant 0 < c < 4096, using s2..s5 as
+// scratch. Without pending flags or AF the constant is encoded in SUBS itself.
+void emit_cmp32_c(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int64_t c, int s2, int s3, int s4, int s5)
+{
+    int fallback = 0;
+    IFX_PENDOR0 { fallback = 1; }
+    IFX(X_AF) { fallback = 1; }
+    if (fallback) {
+        MOV64xw(s2, c);
+        emit_cmp32(dyn, ninst, rex, s1, s2, s3, s4, s5);
+        return;
+    }
+    SET_DFNONE();
+    SUBSxw_U12(s5, s1, c);   // res = s1 - c
+    IFX(X_ZF) {
+        IFNATIVE(NF_EQ) {} else {
+            CSETw(s4, cEQ);
+            BFIw(xFlags, s4, F_ZF, 1);
+        }
+    }
+    IFX(X_CF) {
+        // inverted carry
+        IFNATIVE(NF_CF) {
+            GEN_INVERTED_CARRY();
+        } else {
+            CSETw(s4, cCC);
+            BFIw(xFlags, s4, F_CF, 1);
+        }
+    }
+    IFX(X_OF) {
+        IFNATIVE(NF_VF) {} else {
+            CSETw(s4, cVS);
+            BFIw(xFlags, s4, F_OF, 1);
+        }
+    }
+    IFX(X_SF) {
+        IFNATIVE(NF_SF) {} else {
+            LSRxw(s3, s5, (rex.w)?63:31);
+            BFIw(xFlags, s3, F_SF, 1);
+        }
+    }
+    IFX(X_PF) {
+        emit_pf(dyn, ninst, s5, s4);
+    }
+}
+
 // emit CMP32 instruction, from cmp s1 , 0, using s3 and s4 as scratch
 void emit_cmp32_0(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s3, int s4)
 {
