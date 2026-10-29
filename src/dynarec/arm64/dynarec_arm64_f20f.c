@@ -102,7 +102,8 @@ uintptr_t dynarec64_F20F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
             GETGX(v0, 1);
             GETED(0);
             d1 = fpu_get_scratch(dyn, ninst);
-            if(BOX64ENV(dynarec_fastround)<2) {
+            // int32 -> double is always exact: only the 64-bit form can round.
+            if(rex.w && BOX64ENV(dynarec_fastround)<2) {
                 u8 = sse_setround(dyn, ninst, x3, x4, x5);
             }
             if(rex.w) {
@@ -110,7 +111,7 @@ uintptr_t dynarec64_F20F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int n
             } else {
                 SCVTFDw(d1, ed);
             }
-            if(BOX64ENV(dynarec_fastround)<2) {
+            if(rex.w && BOX64ENV(dynarec_fastround)<2) {
                 x87_restoreround(dyn, ninst, u8);
             }
             VMOVeD(v0, 0, d1, 0);
