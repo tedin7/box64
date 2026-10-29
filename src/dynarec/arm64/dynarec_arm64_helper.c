@@ -1424,6 +1424,11 @@ int x87_setround(dynarec_arm_t* dyn, int ninst, int s1, int s2, int s3)
     MRS_fpcr(s1);               // get fpscr
     MOVx_REG(s3, s1);
     BFIx(s1, s2, 22, 2);        // inject new round
+    // Pons 0012: write FPCR only if the mode changes; else mark s3 (bit 63).
+    EORx_REG(s2, s1, s3);
+    CBNZx(s2, 12);
+    ORRx_mask(s3, s3, 1, 1, 0);
+    B(8);
     MSR_fpcr(s1);               // put new fpscr
     return s3;
 }
@@ -1439,6 +1444,11 @@ int sse_setround(dynarec_arm_t* dyn, int ninst, int s1, int s2, int s3)
     MRS_fpcr(s1);               // get fpscr
     MOVx_REG(s3, s1);
     BFIx(s1, s2, 22, 2);     // inject new round
+    // Pons 0012: write FPCR only if the mode changes; else mark s3 (bit 63).
+    EORx_REG(s2, s1, s3);
+    CBNZx(s2, 12);
+    ORRx_mask(s3, s3, 1, 1, 0);
+    B(8);
     MSR_fpcr(s1);               // put new fpscr
     return s3;
 }
@@ -1448,6 +1458,7 @@ void x87_restoreround(dynarec_arm_t* dyn, int ninst, int s1)
 {
     MAYUSE(dyn); MAYUSE(ninst);
     MAYUSE(s1);
+    TBNZ(s1, 63, 8);            // Pons 0012: FPCR was not changed
     MSR_fpcr(s1);               // put back fpscr
 }
 
