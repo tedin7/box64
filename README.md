@@ -1,3 +1,55 @@
+> ## About this fork: AI-written speed patches for the arm64 dynarec
+>
+> This is **not** the official Box64. Official Box64 is
+> [ptitSeb/box64](https://github.com/ptitSeb/box64); use it unless you want to try these.
+>
+> Branch `pons-perf` adds a few small, generic speed patches to the arm64 dynarec,
+> one commit each, every one measured on a Snapdragon 8 Elite. They were written
+> almost entirely by AI for [Pons](https://github.com/tedin7/pons), an Android app
+> that runs Linux PC games with Box64. Box64's contribution rules do not accept
+> PRs that are fully or mostly AI-generated, so they are not proposed upstream and
+> live here instead.
+>
+> Anyone is welcome to read them, test them, or redo them by hand and propose
+> them to Box64 under the project's rules. Each commit message says what changes
+> and what was measured. Box64's own test suite passes as on upstream.
+>
+> | Patch | What it changes |
+> | --- | --- |
+> | CVTSI2SD int32 | no rounding-mode switch: every int32 fits a double exactly |
+> | CMP r, imm | small immediates encoded in SUBS |
+> | [base + index] | register-offset LDR/STR for MOV and MOVUPS/MOVAPS |
+> | Zeroing idiom | pxor/xorps x,x -> MOVI #0 (no false dependency) |
+> | Other idioms | pcmpeq x,x, psub x,x, MMX pxor, xor r,r -> MOVI / MOV wzr |
+> | FPCR writes | written only when the rounding mode really changes (exact) |
+>
+> ### Measured: official Box64 vs this branch
+>
+> Same device (OnePlus Pad 3, Snapdragon 8 Elite, two big cores pinned), same
+> binaries built the same way from upstream `07e9e5c` and from this branch, best of
+> 6-8 alternating runs. Benchmarks: [Pons tools/transbench](https://github.com/tedin7/pons/tree/main/tools/transbench).
+>
+> | Benchmark | Official | This branch | Change |
+> | --- | --- | --- | --- |
+> | int -> float, `cvtsi2ss` (ns per iteration) | 26.0 | 1.9 | -93% |
+> | float -> int, `cvtsd2si` | 26.1 | 1.9 | -93% |
+> | `pxor` then a float chain | 14.8 | 2.4 | -84% |
+> | `pcmpeqd x,x` then a chain | 14.5 | 2.0 | -86% |
+> | `psubd x,x` then a chain | 21.5 | 2.1 | -90% |
+> | `xor r32,r32` then a multiply chain | 10.8 | 1.4 | -87% |
+> | call into native libm `exp` (ns per call) | 26.5 | 5.4 | -80% |
+> | call into native `fabs` | 15.9 | 4.9 | -70% |
+> | transbench libm (ms) | 215.1 | 38.8 | -82% |
+> | transbench matrix | 13.3 | 10.8 | -19% |
+> | transbench economy | 59.0 | 52.8 | -10% |
+> | transbench threads | 58.0 | 56.4 | -3% |
+> | transbench pathfinding | 107.6 | 105.6 | -2% |
+> | reference (`mov`, untouched) | 1.65 | 1.65 | 0% |
+>
+> In a real game (Crusader Kings III at a 30 fps cap) the frame rate is the same and
+> the CPU runs cooler. Box64's test suite gives the same result as upstream (34 of 36
+> pass; `fpu` and `x87` fail on upstream too, under qemu).
+
 ![Official logo](docs/img/Box64Logo.png "Official Logo")
 
 # Box64: Linux Userspace x86-64 Emulator with a Twist
