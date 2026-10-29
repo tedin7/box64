@@ -1907,4 +1907,26 @@ uintptr_t dynarec64_AVX_F3_0F38(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip
             avx_purge_ymm(dyn, ninst, dyn->insts[ninst + 1].purge_ymm, x1); \
     } while (0)
 
+// Pons 0006/0007: true when the memory operand is [base + index << scale] with no
+// displacement, no segment and 64-bit addressing, and the scale is 0 or equals
+// size_log2 (what arm64 register-offset LDR/STR of that size can shift by).
+// Gives the native base and index registers, and whether the index is shifted.
+static inline int pons_sib_regoff(uintptr_t addr, uint8_t nextop, rex_t rex, int size_log2,
+                                  uint8_t* base, uint8_t* index, uint8_t* shifted)
+{
+    if ((nextop & 0xC7) != 0x04 || rex.seg || rex.is32bits || rex.is67)
+        return 0;
+    uint8_t sib = *(uint8_t*)addr;
+    int scale = sib >> 6;
+    if ((sib & 7) == 5 || (scale != 0 && scale != size_log2))
+        return 0;
+    int idx = ((sib >> 3) & 7) + (rex.x << 3);
+    if (idx == 4)
+        return 0;
+    *base = TO_NAT((sib & 7) + (rex.b << 3));
+    *index = TO_NAT(idx);
+    *shifted = scale != 0;
+    return 1;
+}
+
 #endif //__DYNAREC_ARM64_HELPER_H__

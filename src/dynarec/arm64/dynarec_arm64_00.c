@@ -1619,6 +1619,12 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                         RORxw(gd, gd, 8);
                     }
                     // gd restored after that
+                } else if(!dyn->insts[ninst].use_lrcpc && pons_sib_regoff(addr, nextop, rex, 2+rex.w, &ed, &wback, &u8)) {
+                    addr++; // the SIB byte
+                    lock = 0;
+                    if(!u8) STRxw_REG(gd, ed, wback);
+                    else if(rex.w) STRx_REG_LSL3(gd, ed, wback);
+                    else STRw_REG_LSL2(gd, ed, wback);
                 } else {
                     addr = geted(dyn, addr, ninst, nextop, &ed, x2, &fixedaddress, &unscaled, 0xfff << (2 + rex.w), (1 << (2 + rex.w)) - 1, rex, &lock, 0, 0);
                     if(!lock && !dyn->insts[ninst].use_lrcpc && BOX64ENV(unity) && !VolatileRangesContains(ip) && ((fixedaddress==0x80) || (fixedaddress==0x84) || (fixedaddress==0xc0) || (fixedaddress==0xc4))) {
@@ -1675,6 +1681,15 @@ uintptr_t dynarec64_00(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             if(MODREG) {
                 MOVxw_REG(gd, TO_NAT((nextop & 7) + (rex.b << 3)));
             } else {
+                if(!dyn->insts[ninst].use_lrcpc && pons_sib_regoff(addr, nextop, rex, 2+rex.w, &ed, &wback, &u8)) {
+                    addr++; // the SIB byte
+                    lock = 0;
+                    SMREADLOCK(lock);
+                    if(!u8) LDRxw_REG(gd, ed, wback);
+                    else if(rex.w) LDRx_REG_LSL3(gd, ed, wback);
+                    else LDRw_REG_LSL2(gd, ed, wback);
+                    break;
+                }
                 addr = geted(dyn, addr, ninst, nextop, &ed, x2, &fixedaddress, &unscaled, 0xfff<<(2+rex.w), (1<<(2+rex.w))-1, rex, &lock, 0, 0);
                 if(!lock && !dyn->insts[ninst].use_lrcpc && BOX64ENV(unity) && !VolatileRangesContains(ip) && ((fixedaddress==0x80) || (fixedaddress==0x84) || (fixedaddress==0xc0) || (fixedaddress==0xc4))) {
                     if(!dyn->insts[ninst].x64.strongmem && cpuext.lrcpc && cpuext.lrcpc2 && cpuext.uscat)

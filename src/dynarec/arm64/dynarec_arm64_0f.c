@@ -282,8 +282,13 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             } else {
                 v0 = sse_get_reg_empty(dyn, ninst, x1, gd);
                 SMREAD();
-                addr = geted(dyn, addr, ninst, nextop, &ed, x1, &fixedaddress, &unscaled, 0xfff<<4, 15, rex, NULL, 0, 0);
-                VLD128(v0, ed, fixedaddress);   // no alignment issue with ARMv8 NEON :)
+                if(pons_sib_regoff(addr, nextop, rex, 4, &ed, &wback, &u8)) {
+                    addr++; // the SIB byte (scale is 0 here: x86 cannot scale by 16)
+                    VLDR128_REG(v0, ed, wback);
+                } else {
+                    addr = geted(dyn, addr, ninst, nextop, &ed, x1, &fixedaddress, &unscaled, 0xfff<<4, 15, rex, NULL, 0, 0);
+                    VLD128(v0, ed, fixedaddress);
+                }
             }
             break;
         case 0x11:
@@ -309,8 +314,13 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                         ADDx_U12(wback, wback, 1);
                     }
                 } else {
-                    addr = geted(dyn, addr, ninst, nextop, &ed, x1, &fixedaddress, &unscaled, 0xfff<<4, 15, rex, NULL, 0, 0);
-                    VST128(v0, ed, fixedaddress);
+                    if(pons_sib_regoff(addr, nextop, rex, 4, &ed, &wback, &u8)) {
+                        addr++; // the SIB byte (scale is 0 here: x86 cannot scale by 16)
+                        VSTR128_REG(v0, ed, wback);
+                    } else {
+                        addr = geted(dyn, addr, ninst, nextop, &ed, x1, &fixedaddress, &unscaled, 0xfff<<4, 15, rex, NULL, 0, 0);
+                        VST128(v0, ed, fixedaddress);
+                    }
                 }
                 SMWRITE2();
             }
@@ -466,8 +476,13 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
             } else {
                 v0 = sse_get_reg_empty(dyn, ninst, x1, gd);
                 SMREAD();
-                addr = geted(dyn, addr, ninst, nextop, &ed, x1, &fixedaddress, &unscaled, 0xfff<<4, 15, rex, NULL, 0, 0);
-                VLD128(v0, ed, fixedaddress);
+                if(pons_sib_regoff(addr, nextop, rex, 4, &ed, &wback, &u8)) {
+                    addr++; // the SIB byte (scale is 0 here: x86 cannot scale by 16)
+                    VLDR128_REG(v0, ed, wback);
+                } else {
+                    addr = geted(dyn, addr, ninst, nextop, &ed, x1, &fixedaddress, &unscaled, 0xfff<<4, 15, rex, NULL, 0, 0);
+                    VLD128(v0, ed, fixedaddress);
+                }
             }
             break;
         case 0x29:
@@ -480,8 +495,13 @@ uintptr_t dynarec64_0F(dynarec_arm_t* dyn, uintptr_t addr, uintptr_t ip, int nin
                 v1 = sse_get_reg_empty(dyn, ninst, x1, ed);
                 VMOVQ(v1, v0);
             } else {
-                addr = geted(dyn, addr, ninst, nextop, &ed, x1, &fixedaddress, &unscaled, 0xfff<<4, 15, rex, NULL, 0, 0);
-                VST128(v0, ed, fixedaddress);
+                if(pons_sib_regoff(addr, nextop, rex, 4, &ed, &wback, &u8)) {
+                    addr++; // the SIB byte (scale is 0 here: x86 cannot scale by 16)
+                    VSTR128_REG(v0, ed, wback);
+                } else {
+                    addr = geted(dyn, addr, ninst, nextop, &ed, x1, &fixedaddress, &unscaled, 0xfff<<4, 15, rex, NULL, 0, 0);
+                    VST128(v0, ed, fixedaddress);
+                }
                 SMWRITE2();
             }
             break;
