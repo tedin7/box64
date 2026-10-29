@@ -900,7 +900,8 @@ int convert_bitmask(uint64_t bitmask);
 
 // LOGIC
 #define VLOGIC_gen(Q, opc2, Rm, Rn, Rd)     ((Q)<<30 | 1<<29 | 0b01110<<24 | (opc2)<<22 | 1<<21 | (Rm)<<16 | 0b00011<<11 | 1<<10 | (Rn)<<5 | (Rd))
-#define VEORQ(Vd, Vn, Vm)                   EMIT(VLOGIC_gen(1, 0b00, Vm, Vn, Vd))
+// Pons 0010: x ^ x is 0; MOVI does not wait for the old value, EOR does.
+#define VEORQ(Vd, Vn, Vm)                   do { if ((Vn) == (Vm)) MOVIQ_64(Vd, 0); else EMIT(VLOGIC_gen(1, 0b00, Vm, Vn, Vd)); } while (0)
 #define VEOR(Vd, Vn, Vm)                    EMIT(VLOGIC_gen(0, 0b00, Vm, Vn, Vd))
 
 #define VLOGIC_immediate(Q, op, abc, cmode, defgh, Rd)  ((Q)<<30 | (op)<<29 | 0b0111100000<<19 | (abc)<<16 | (cmode)<<12 | 1<<10 | (defgh)<<5 | (Rd))
