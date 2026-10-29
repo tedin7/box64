@@ -132,7 +132,8 @@ void emit_xor32(dynarec_arm_t* dyn, int ninst, rex_t rex, int s1, int s2, int s3
     } else {
         SET_DFNONE();
     }
-    EORxw_REG(s1, s1, s2);
+    // Pons 0011: xor r,r is 0, MOV from WZR does not wait for r.
+    if (s1 == s2) MOVxw_REG(s1, xZR); else EORxw_REG(s1, s1, s2);
     IFX(X_PEND) {
         STRxw_U12(s1, xEmu, offsetof(x64emu_t, res));
     }

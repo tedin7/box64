@@ -902,7 +902,7 @@ int convert_bitmask(uint64_t bitmask);
 #define VLOGIC_gen(Q, opc2, Rm, Rn, Rd)     ((Q)<<30 | 1<<29 | 0b01110<<24 | (opc2)<<22 | 1<<21 | (Rm)<<16 | 0b00011<<11 | 1<<10 | (Rn)<<5 | (Rd))
 // Pons 0010: x ^ x is 0; MOVI does not wait for the old value, EOR does.
 #define VEORQ(Vd, Vn, Vm)                   do { if ((Vn) == (Vm)) MOVIQ_64(Vd, 0); else EMIT(VLOGIC_gen(1, 0b00, Vm, Vn, Vd)); } while (0)
-#define VEOR(Vd, Vn, Vm)                    EMIT(VLOGIC_gen(0, 0b00, Vm, Vn, Vd))
+#define VEOR(Vd, Vn, Vm)                    do { if ((Vn) == (Vm)) MOVI_64(Vd, 0); else EMIT(VLOGIC_gen(0, 0b00, Vm, Vn, Vd)); } while (0)
 
 #define VLOGIC_immediate(Q, op, abc, cmode, defgh, Rd)  ((Q)<<30 | (op)<<29 | 0b0111100000<<19 | (abc)<<16 | (cmode)<<12 | 1<<10 | (defgh)<<5 | (Rd))
 //#define V
@@ -1001,10 +1001,10 @@ int convert_bitmask(uint64_t bitmask);
 #define VADD_8(Vd, Vn, Vm)                  EMIT(ADDSUB_vector(0, 0, 0b00, Vm, Vn, Vd))
 #define VADD_16(Vd, Vn, Vm)                 EMIT(ADDSUB_vector(0, 0, 0b01, Vm, Vn, Vd))
 #define VADD_32(Vd, Vn, Vm)                 EMIT(ADDSUB_vector(0, 0, 0b10, Vm, Vn, Vd))
-#define VSUBQ_8(Vd, Vn, Vm)                 EMIT(ADDSUB_vector(1, 1, 0b00, Vm, Vn, Vd))
-#define VSUBQ_16(Vd, Vn, Vm)                EMIT(ADDSUB_vector(1, 1, 0b01, Vm, Vn, Vd))
-#define VSUBQ_32(Vd, Vn, Vm)                EMIT(ADDSUB_vector(1, 1, 0b10, Vm, Vn, Vd))
-#define VSUBQ_64(Vd, Vn, Vm)                EMIT(ADDSUB_vector(1, 1, 0b11, Vm, Vn, Vd))
+#define VSUBQ_8(Vd, Vn, Vm)                 do { if ((Vn) == (Vm)) MOVIQ_64(Vd, 0); else EMIT(ADDSUB_vector(1, 1, 0b00, Vm, Vn, Vd)); } while (0)
+#define VSUBQ_16(Vd, Vn, Vm)                do { if ((Vn) == (Vm)) MOVIQ_64(Vd, 0); else EMIT(ADDSUB_vector(1, 1, 0b01, Vm, Vn, Vd)); } while (0)
+#define VSUBQ_32(Vd, Vn, Vm)                do { if ((Vn) == (Vm)) MOVIQ_64(Vd, 0); else EMIT(ADDSUB_vector(1, 1, 0b10, Vm, Vn, Vd)); } while (0)
+#define VSUBQ_64(Vd, Vn, Vm)                do { if ((Vn) == (Vm)) MOVIQ_64(Vd, 0); else EMIT(ADDSUB_vector(1, 1, 0b11, Vm, Vn, Vd)); } while (0)
 #define VSUB_8(Vd, Vn, Vm)                  EMIT(ADDSUB_vector(0, 1, 0b00, Vm, Vn, Vd))
 #define VSUB_16(Vd, Vn, Vm)                 EMIT(ADDSUB_vector(0, 1, 0b01, Vm, Vn, Vd))
 #define VSUB_32(Vd, Vn, Vm)                 EMIT(ADDSUB_vector(0, 1, 0b10, Vm, Vn, Vd))
@@ -1667,13 +1667,13 @@ int convert_bitmask(uint64_t bitmask);
 // Integer CMP
 // EQual
 #define CMEQ_vector(Q, U, size, Rm, Rn, Rd)     ((Q)<<30 | (U)<<29 | 0b01110<<24 | (size)<<22 | 1<<21 | (Rm)<<16 | 0b10001<<11 | 1<<10 | (Rn)<<5 | (Rd))
-#define VCMEQ_8(Rd, Rn, Rm)         EMIT(CMEQ_vector(0, 1, 0b00, Rm, Rn, Rd))
-#define VCMEQ_16(Rd, Rn, Rm)        EMIT(CMEQ_vector(0, 1, 0b01, Rm, Rn, Rd))
-#define VCMEQ_32(Rd, Rn, Rm)        EMIT(CMEQ_vector(0, 1, 0b10, Rm, Rn, Rd))
-#define VCMEQQ_8(Rd, Rn, Rm)        EMIT(CMEQ_vector(1, 1, 0b00, Rm, Rn, Rd))
-#define VCMEQQ_16(Rd, Rn, Rm)       EMIT(CMEQ_vector(1, 1, 0b01, Rm, Rn, Rd))
-#define VCMEQQ_32(Rd, Rn, Rm)       EMIT(CMEQ_vector(1, 1, 0b10, Rm, Rn, Rd))
-#define VCMEQQ_64(Rd, Rn, Rm)       EMIT(CMEQ_vector(1, 1, 0b11, Rm, Rn, Rd))
+#define VCMEQ_8(Rd, Rn, Rm)         do { if ((Rn) == (Rm)) MOVI_64(Rd, 0xff); else EMIT(CMEQ_vector(0, 1, 0b00, Rm, Rn, Rd)); } while (0)
+#define VCMEQ_16(Rd, Rn, Rm)        do { if ((Rn) == (Rm)) MOVI_64(Rd, 0xff); else EMIT(CMEQ_vector(0, 1, 0b01, Rm, Rn, Rd)); } while (0)
+#define VCMEQ_32(Rd, Rn, Rm)        do { if ((Rn) == (Rm)) MOVI_64(Rd, 0xff); else EMIT(CMEQ_vector(0, 1, 0b10, Rm, Rn, Rd)); } while (0)
+#define VCMEQQ_8(Rd, Rn, Rm)        do { if ((Rn) == (Rm)) MOVIQ_64(Rd, 0xff); else EMIT(CMEQ_vector(1, 1, 0b00, Rm, Rn, Rd)); } while (0)
+#define VCMEQQ_16(Rd, Rn, Rm)       do { if ((Rn) == (Rm)) MOVIQ_64(Rd, 0xff); else EMIT(CMEQ_vector(1, 1, 0b01, Rm, Rn, Rd)); } while (0)
+#define VCMEQQ_32(Rd, Rn, Rm)       do { if ((Rn) == (Rm)) MOVIQ_64(Rd, 0xff); else EMIT(CMEQ_vector(1, 1, 0b10, Rm, Rn, Rd)); } while (0)
+#define VCMEQQ_64(Rd, Rn, Rm)       do { if ((Rn) == (Rm)) MOVIQ_64(Rd, 0xff); else EMIT(CMEQ_vector(1, 1, 0b11, Rm, Rn, Rd)); } while (0)
 // Greater test
 #define CMG_vector(Q, U, size, eq, Rm, Rn, Rd)     ((Q)<<30 | (U)<<29 | 0b01110<<24 | (size)<<22 | 1<<21 | (Rm)<<16 | 0b0011<<12 | (eq)<<11 | 1<<10 | (Rn)<<5 | (Rd))
 // Signed Greater or Equal
